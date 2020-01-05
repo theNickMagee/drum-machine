@@ -1,0 +1,38 @@
+class BoxHolder { 
+  float x;
+  float y;
+  float w;
+  float h;
+  float secondw;
+  float secondh;
+  float border;
+  float r;
+  ArrayList<Box> boxesheld = new ArrayList<Box>();
+  float[] starttimes;
+  boolean running;
+  boolean column;
+  BoxHolder ( float xa, float ya,float wa, float ha, float bordera) {  
+    x = xa;
+    y = ya;
+    h = ha;
+    w = wa;
+    border = bordera;
+    secondw = w + border;
+    secondh = h + border;
+    r = 10;
+    running = false;
+  } 
+  void place(Box box, float bx, float by){
+    boxesheld.add(box);
+  }
+  
+ 
+  void update() {
+    fill(130);
+    rect(x - border/2, y - border/2, secondw, secondh, r);
+    fill(220);
+    rect(x, y, w, h);
+    
+    
+  }
+}
