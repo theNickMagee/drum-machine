@@ -1,0 +1,79 @@
+class Box { 
+  float duration;
+  float x;
+  float y;
+  float h;
+  boolean locked;
+  boolean pressed;
+  boolean holderplaying;
+  boolean notplayed;
+  Sampler player;
+  BoxHolder parent_holder;
+  int rand;
+  color randCol;
+  Box ( float xa, float ya,float durationa, float ha, String filea) {  
+    duration = durationa;
+    x = xa;
+    y = ya;
+    h = ha;
+    locked = false;
+    pressed = false;
+    notplayed = true;
+    player = new Sampler( filea, 4, minim );
+    player.patch(out);
+    if (boxCnt == distColors.length - 1){
+      colorsPicked = new int[0];
+    }
+    rand = (int)random(0, distColors.length - 1);
+    pickedBefore = true;
+    for (int i = 0; i < colorsPicked.length; i++){
+      if (rand == colorsPicked[i]){
+        rand = int(random(0, distColors.length - 1));
+        i = 0;
+      }
+    }
+    pickedBefore = false;
+    randCol = distColors[rand];
+  } 
+  boolean wasPressed(float xp, float yp){
+      if ((xp > x)  &&(xp < x + duration) && (yp>y) && (yp <y+h)) {
+        return true;
+      }else{
+        return false;
+      }
+  }
+  void bePlaced(float mx,float my){
+    if ((mx > trashX)  &&(mx < trashX + trashW) && (my>trashY) && (my <trashY+trashH)){
+      this.duration = 0;
+      this.x = 4000;
+    } else{
+      x = mx - duration/2;
+      y = parent_holder.y + ((parent_holder.h - this.h)/2);
+      pressed = false;
+      println("placed");
+    }
+    
+  }
+  void custPlay(){
+    if (notplayed){
+      player.trigger();
+      println("play");
+      notplayed = false;
+    }
+  }
+  void update() {
+    if (pressed){
+      x = mouseX - this.duration/2;
+      y = mouseY - this.h/2;
+    }
+    if (holderplaying){
+      if (layers.linex > x){
+        this.custPlay();
+        
+      }
+    }
+    noStroke();
+    fill(randCol);
+    rect(x, y, duration, h);
+  }
+}
