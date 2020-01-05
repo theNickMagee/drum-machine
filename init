@@ -1,0 +1,464 @@
+import processing.opengl.*;
+import controlP5.*;
+import processing.sound.*;
+
+import ddf.minim.*;
+import ddf.minim.spi.*;
+import ddf.minim.effects.*;
+import ddf.minim.ugens.*;
+
+
+Minim       minim;
+
+ControlP5 cp5;
+
+AudioOutput out;
+
+TickRate rateControl;
+FilePlayer sample1;
+
+
+FilePlayer rec_player;
+//input
+AudioInput in;
+AudioRecorder recorder;
+boolean recorded;
+
+String[] textfieldNames = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13"};
+boolean[] truevals = new boolean[16];
+
+
+
+HScrollbar  scroll_tick;
+
+
+float recordx = 180;
+float recordy = 850;
+float recordw = 20;
+float recordh = 20;
+boolean recording = false;
+float time_rec = 0;
+
+float button_amp_x = 1880;
+float button_amp_y = 300;
+float button_amp_w = 20;
+float button_amp_h = 20;
+
+float savex = 60;
+float savey = 750;
+float savew = 20;
+float saveh = 20;
+
+float leftx = 100;
+float lefty = 750;
+float leftw = 20;
+float lefth = 20;
+
+float rightx = 140;
+float righty = 750;
+float rightw = 20;
+float righth = 20;
+
+float replayx = 180;
+float replayy = 750;
+float replayw = 20;
+float replayh = 20;
+
+float rewindx = 1900;
+float rewindy = 530;
+float rewindr = 40;
+
+float sample_tick_boxx = 1500;
+float sample_tick_boxy = 350;
+float sample_tick_boxw = 400;
+float sample_tick_boxh = 100;
+boolean sample_tick_on = false;
+float sample_tick_rate;
+float last_mouse_tickval = sample_tick_boxx;
+boolean sample_notouch = true;
+
+float samvol_boxx = 2000;
+float samvol_boxy = 150;
+float samvol_boxw = 100;
+float samvol_boxh = 300;
+boolean samvol_on = false;
+float samvol_rate;
+float last_mouse_samvolval = samvol_boxy;
+boolean samvol_notouch = true;
+float svty;
+
+int pagenumber = 0;
+int max_page = 0;
+int b = 0;
+
+
+Sampler samps[] = new Sampler[13];
+String[] sample_names = {
+    "808-Clap17.wav", "808-Clap06.wav", "bigbassfoot-kick.wav", "bunchakiks33.mp3", "bunchakiks34.mp3", "el_kick.mp3", "Ramen.wav", "quick_hat.mp3", "fish1.mp3", "fish_snare.mp3", 
+    "fish2.mp3", "LADYSING1.wav", "LADYSING2.wav"
+  };
+  
+Gain gains[] = new Gain[14];
+float dbs[] = new float[13];
+Gain filegain;
+
+HScrollbar scrollbars[] = new HScrollbar[13];
+
+//???
+boolean paused = true;
+boolean replay = false;
+
+
+
+boolean[][] rows = new boolean[13][16];
+ArrayList<Rect> buttons = new ArrayList<Rect>(); //array of rectangles called buttons
+//StringList names;
+boolean memory[][] = new boolean[13][360];
+
+  
+  
+int bpm = 120;  //beat per minute
+
+int beat; // which beat we're on
+
+class Tick implements Instrument{
+  void noteOn( float dur )
+  {
+    for (int i = 0; i < 12; i++){
+      if ( rows[i][beat] ) samps[i].trigger();
+    }
+  }
+  
+  void noteOff()
+  {
+    // next beat
+    beat = (beat+1)%16;
+    // set the new tempo
+    out.setTempo( bpm );
+    // play this again right now, with a sixteenth note duration
+    out.playNote( 0, 0.25f, this );
+  }
+}
+
+Box rec_box; 
+ArrayList<Box> boxes = new ArrayList<Box>();
+
+boolean draggingbox;
+
+float orginx = 950;
+float orginy = 600;
+float boxholder_ix = orginx;
+float boxholder_iy = orginy;
+
+BoxHolder BoxHolder1 = new BoxHolder(boxholder_ix, boxholder_iy, 400, 70, 20); 
+
+//initial layer
+Layers layers = new Layers(orginx, orginy);
+
+int column_counter = 1;
+int row_counter = 1;
+
+/**button coords for new column and new row commands **/
+float new_bhb_w = 20;
+float new_bhb_h =40;
+float new_bhb_x = orginx - new_bhb_w - 40;
+float new_bhb_y = orginy;
+
+float new_bhbc_w = 40;
+float new_bhbc_h =20;
+float new_bhbc_x = orginx;
+float new_bhbc_y = orginy - new_bhbc_h - 40;
+
+String boxFileName;
+int boxCnt = 0;
+
+color[] distColors = {color(230, 25, 75), color(60, 180, 75), color(255, 225, 25), color(0, 130, 200), color(245, 130, 48), color(145, 30, 180), color(70, 240, 240), color(240, 50, 230), color(210, 245, 60), color(250, 190, 190), color(0, 128, 128), color(230, 190, 255), color(170, 110, 40), color(255, 250, 200), color(128, 0, 0), color(170, 255, 195), color(128, 128, 0), color(255, 215, 180), color(0, 0, 128), color(128, 128, 128), color(255, 255, 255), color(0, 0, 0)};
+int [] colorsPicked = {};
+boolean pickedBefore = false;
+String fileName = "mysticalpiano.mp3";
+
+float loopbuttonX = orginx + 400;
+float loopbuttonY = orginy - new_bhbc_h - 40;
+float loopButtonRadius = 40;
+
+float trashX = 427;
+float trashY = 726;
+float trashW = 240;
+float trashH = 140;
+
+void setup() {
+  //SIZE
+  size(2300, 1000); 
+  
+  //MINIM
+  minim = new Minim(this);  
+  
+  //SONG SAMPLE
+  sample1 =  new FilePlayer( minim.loadFileStream(fileName) );
+  
+  //GAIN FOR FILE
+  filegain = new Gain(0.f);
+  
+  //TICKRATE FOR RILE
+  rateControl = new TickRate(1.f);
+  
+  //MINIM INPUT
+  in = minim.getLineIn(Minim.STEREO, 2048);
+  
+  //RECORDER FOR BOX
+  boxFileName = "recording" + boxCnt + ".wav";
+  recorder = minim.createRecorder(in, boxFileName);
+  
+  //OUTPUT MINIM
+  out   = minim.getLineOut();
+  
+  //PATCH FILE TO MINIM
+  sample1.patch(filegain).patch(rateControl).patch(out);
+  
+  //ADD INITIAL LAYER
+  layers.boxholders.add(BoxHolder1);
+
+  //FONT
+  PFont font = createFont("arial", 2);
+
+  //UHHHH FOR TEXT
+  cp5 = new ControlP5(this);
+  
+  //ALL THE LABELS I DONT REMEMBER
+  int y = 60;
+  int spacing = 50;
+  for (String name : textfieldNames) {
+    cp5.addTextfield(name)
+      .setPosition(780, y)
+      .setSize(50, 20)
+      .setFont(font)
+      .setFocus(true)
+      .setColor(color(255, 0, 0))
+      ;
+    y += spacing;
+  }
+
+  //ARRAY OF GAINS FOR DRUM MACHNE FILES
+  for (int i  = 0; i < gains.length; i++) {
+    gains[i] = new Gain(0.f);
+  }
+  
+  //MAKE SCROLLBAR FOR VOLUME/GAIN OF DRUMMACHINE FILES
+  for (int i  = 0; i < scrollbars.length; i++) {
+    scrollbars[i] = new HScrollbar(500, 65 + i*50, 250, 8, 8);
+  }
+  
+  //DRUMMACHINE I THINK SPEED
+  scroll_tick = new HScrollbar(900, 400, 250, 8, 8);
+
+  //HOOK SAMPLES UP TO GAINS AND NAMES
+  for (int i  = 0; i < samps.length; i++) {
+    samps[i]= new Sampler( sample_names[i], 4, minim );
+    samps[i].patch(gains[i]).patch(out);
+  }
+
+  //sample.patch(filegain).patch(rateControl).patch(out);
+  //sample.amp(filegain);
+  //sample.rate(rateControl);
+  
+  //DRUM MACHINE BUTTONS
+  for (int i = 0; i < 16; i++){
+    for (int j = 0; j < 13; j++){
+      buttons.add(new Rect(10+i*24, 50 + (j*50), rows[j], i ) );
+    }
+  
+  
+
+  }
+
+  //BETWEEN SETUP AND DRAW MINIM AND TICK
+  beat = 0;
+  out.setTempo( bpm );
+  out.playNote( 0, 0.25f, new Tick() );
+  
+  
+}
+
+
+void draw() {
+  //println(mouseX, " ", mouseY);
+  //SAMPLE PLAYER INITIAL
+  if (paused) {
+    sample1.pause();
+    
+  }
+  //BACKGROUND
+  background(0);
+  //BUTTONS
+  fill(255);
+  for (int i = 0; i < buttons.size(); ++i) {
+    buttons.get(i).draw();
+  }
+  //BEAT SLAPPER TOP THING
+  stroke(128);
+  if ( beat % 4 == 0 ) {
+    fill(200, 0, 0);
+  } else {
+    fill(0, 200, 0);
+  }   
+  rect(10+beat*24, 35, 14, 9);  //beat marker
+  
+  //SAMPLE NAMES GETTING THE FILES HOOKED UP
+  for (int i = 0; i < sample_names.length; i++) {
+    fill(255);
+    text(sample_names[i], 400, (i*50)+70);
+  }
+  
+  //SCROLL FOR DRUM SPEED
+  int rate = int(map(scroll_tick.getPos(), 900, 1150, 1, 360));
+  bpm = rate;
+  scroll_tick.update();
+  scroll_tick.display();
+  
+  
+  // WAVEFORM INPUT FOR ALL
+  stroke( 255 );
+  for ( int i = 0; i < out.bufferSize() - 1; i++ ) {
+    // find the x position of each buffer value
+    float x1  =  map( i, 0, out.bufferSize(), 1500, 1900 );
+    float x2  =  map( i+1, 0, out.bufferSize(), 1500, 1900 );
+    // draw a line from one buffer position to the next for both channels
+    line( x1, 150  - out.left.get(i)*50, x2, 150  - out.left.get(i+1)*50);
+    line( x1, 250 - out.right.get(i)*50, x2, 250 - out.right.get(i+1)*50);
+  }  
+
+
+  //SET GAIN TO SCROLLBAR AND DISPLAY
+  for (int i =0; i < 13; i++){
+    dbs[i] = map(scrollbars[i].getPos(), 500, 772, -30, 30);
+    gains[i].setValue(dbs[i]);
+    scrollbars[i].update();
+    scrollbars[i].display();
+  }
+  
+
+  //SAMPLE TICK RATE BOX AND CUSTOM SCROLL
+  fill(255, 15, 19);
+  rect(sample_tick_boxx, sample_tick_boxy, sample_tick_boxw, sample_tick_boxh);
+  stroke(0,0,250);
+  strokeWeight(4);
+  float stx = sample_tick_boxx + map(1, 0, 3, 0, sample_tick_boxw);
+  line(stx,sample_tick_boxy,stx,sample_tick_boxy+sample_tick_boxh-10);
+  if (sample_notouch ==true){
+    last_mouse_tickval = stx;
+  }
+   if ((mouseX > sample_tick_boxx)  &&(mouseX < sample_tick_boxx + sample_tick_boxw) && (mouseY>sample_tick_boxy) && (mouseY <sample_tick_boxy+sample_tick_boxh)) {
+    last_mouse_tickval = mouseX;    
+    sample_notouch = false;
+  }
+  fill(0,255,0);
+  noStroke();
+  rect(sample_tick_boxx, sample_tick_boxy, last_mouse_tickval-sample_tick_boxx, sample_tick_boxh);
+  sample_tick_rate = map(last_mouse_tickval, sample_tick_boxx, sample_tick_boxw+sample_tick_boxx, 0, 3);
+  rateControl.value.setLastValue(sample_tick_rate);
+  
+  //SAMPLE VOLUME SCROLL CUSTOM
+  stroke(250);
+  strokeWeight(4);
+  fill(0);
+  rect(samvol_boxx, samvol_boxy, samvol_boxw, samvol_boxh);
+  if (samvol_notouch ==true){
+      svty = samvol_boxy + map(-3, -6, 6, samvol_boxh, 0);
+      line(samvol_boxx,svty,samvol_boxx+samvol_boxw,svty);
+      last_mouse_samvolval = svty;
+    }
+  
+
+  //SAMPLE VOLUME SCROLL CUSTOM
+   if ((mouseX > samvol_boxx)  &&(mouseX < samvol_boxx + samvol_boxw) && (mouseY>samvol_boxy) && (mouseY <samvol_boxy+samvol_boxh)) {
+    samvol_notouch = false;
+    last_mouse_samvolval = mouseY;    
+    svty = last_mouse_samvolval;
+  }
+  line(samvol_boxx,svty,samvol_boxx+samvol_boxw,svty);
+  filegain.setValue(map(last_mouse_samvolval, samvol_boxy, samvol_boxy+samvol_boxh, 30, -30));
+ 
+  //LABELS
+  stroke(250);
+  strokeWeight(1);
+  fill(250);
+  noStroke();
+  text("tick", 1200, 400);
+  //PAGENUMBER
+  textSize(30);
+  text(pagenumber, 350, height - 270);
+  //ANOTHER BUTTON
+  textSize(10);
+  fill(255);
+  rect(button_amp_x, button_amp_y, button_amp_w, button_amp_h);
+  fill(96, 189, 93);
+  rect(button_amp_x, button_amp_y, button_amp_w, button_amp_h);
+  fill(209, 66, 244);
+  rect(savex, savey, savew, saveh);
+  fill(77, 73, 79);
+  rect(leftx, lefty, leftw, lefth);
+  rect(rightx, righty, rightw, righth);
+  fill(96, 189, 93);
+  triangle(rightx, righty, rightx, righty+righth, rightx+rightw, righty+righth/2);
+  triangle(leftx+leftw, lefty, leftx+leftw, lefty+lefth, leftx, lefty+lefth/2);
+  fill(119, 73, 41);
+  rect(replayx, replayy, replayw, replayh);
+  fill(38, 239, 38);
+  ellipse(replayx + replayw/2, replayy + replayw/2, replayw, replayh);
+  fill(0, 204, 255);
+  ellipse(rewindx, rewindy, rewindr, rewindr);
+  
+  //REPLAY.  DONT LIKE THIS -- BASICALLY FOR SEVERAL PAGES OF DRUM PATTERNS
+  if (replay == true) {
+    if (beat == 2) {
+      b = 0;
+    }
+    if ((beat == 15)&&(b == 0)) {
+      //right();
+      b++;
+    }
+    if (pagenumber == max_page) {
+      //replay = false;
+    }
+  }
+  
+  //LAYERS -- row adder rect
+  noStroke();
+  fill(0, 250, 0);
+  rect(new_bhb_x, new_bhb_y, new_bhb_w, new_bhb_h);
+  
+  //LAYERS -- column adder rect
+  fill(0, 0, 250);
+  rect(new_bhbc_x, new_bhbc_y, new_bhbc_w, new_bhbc_h);
+  
+   //RECORDING BOX DISPLAY
+  if (recording){
+    time_rec = time_rec + 1;
+    noStroke();
+    fill(255, 153, 51);
+    rect(1500,50, time_rec, 50);
+  }
+  
+  layers.update();
+  
+  noStroke();
+  //TRASH CAN RECT
+  fill(170);
+  rect(trashX, trashY, trashW, trashH, 10);
+  //fill(250);
+  //textSize(50);
+  //text("trash", trashX, trashY + trashH/2);
+  textSize(10);
+  
+  //UPDATE BOXES IN ARRAY
+    for (Box b: boxes){
+      b.update();
+    }
+    
+  //LOOP BUTTON
+  noStroke();
+  fill(255, 255, 0);
+  ellipse(loopbuttonX, loopbuttonY, 40, 40);
+  
+  
+}
