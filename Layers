@@ -1,0 +1,103 @@
+class Layers{
+  ArrayList<BoxHolder> boxholders = new ArrayList<BoxHolder>();
+  float x;
+  float y;
+  float linex;
+  float lineh;
+  boolean running;
+  boolean looping;
+  float loopStartx;
+  float loopEndx;
+  boolean startXTouched;
+  boolean endXTouched;
+  
+  Layers(float ax, float ay){
+    x = ax;
+    y = ay;
+    running = false;
+    linex = x;
+    lineh = 100;
+  }
+    void run(){
+      this.running = true;
+      for (Box b: boxes){
+        b.holderplaying = true;
+      }
+   }
+   
+  void reset(){
+    running = false;
+    for (Box b: boxes){
+      b.holderplaying = false;
+      b.notplayed = true;
+    }
+    linex = orginx;
+    if (looping){
+      linex = loopStartx;
+    }
+  }
+  void placeinboxholder(Box b,float mx, float my){
+    for (BoxHolder bh: boxholders){
+      if ((mx > bh.x)  &&(mx < bh.x + bh.w) && (my>bh.y) && (my <bh.y+bh.h)) {
+        bh.place(b, mx, my);
+        b.parent_holder = bh;
+      }
+    }
+  }
+  
+  void loop(int state){
+    println("state: ", state);
+    if (state == 0 ){
+      loopStartx = x + ((column_counter -1) * boxholders.get(0).w) + (boxholders.get(0).w / 4);
+      loopEndx = x + ((column_counter - 1) * boxholders.get(0).w) + (3*(boxholders.get(0).w / 4));
+      looping = true;
+      this.reset();
+    }
+    if (state == 1 ){
+      this.run();
+    }
+    if (state == 2){
+      looping = false;
+      this.reset();
+      this.run();
+    }
+    
+  }
+  void update(){
+    //UPDATE BOXHOLDERS
+    for (BoxHolder bh: boxholders){
+      bh.update();
+    }
+    
+     //if looping
+    if (looping){
+      stroke(250,250,0);
+      line(loopStartx, boxholders.get(0).y - boxholders.get(0).border/2, loopStartx, orginy + boxholders.get(0).h * row_counter + boxholders.get(0).border * row_counter);
+      line(loopEndx, boxholders.get(0).y - boxholders.get(0).border/2, loopEndx, orginy + boxholders.get(0).h * row_counter + boxholders.get(0).border * row_counter);
+    }
+    if ((looping && (linex == loopEndx))){
+      linex = loopStartx;
+      this.reset();
+      this.run();
+    }
+    
+    //red line indicating recording
+    if (running){ linex = linex +1; }
+    stroke(250,0,0);
+    strokeWeight(3);
+    line(linex, boxholders.get(0).y - boxholders.get(0).border/2, linex, orginy + boxholders.get(0).h * row_counter + boxholders.get(0).border * row_counter);
+    
+   
+    if (linex == boxholders.get(0).x + column_counter*boxholders.get(0).w){
+      println("NO ROOOOOOOOOOOOM");
+      this.reset();
+    }
+    if (startXTouched){
+      loopStartx = mouseX;
+    }
+    if (endXTouched){
+      loopEndx = mouseX;
+    }
+  }
+
+}
