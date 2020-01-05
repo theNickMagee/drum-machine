@@ -1,0 +1,165 @@
+//REPLAY
+void replay() {
+  //clear_beat();
+  while (pagenumber > 0) {
+    left();
+  }
+  beat  = 0;
+  if (replay == true) {
+    replay = false;
+  } else {
+    replay = true;
+  }
+  //if ( !recorded) {
+    if ( recorder.isRecording() ) {
+      recorder.endRecord();
+      recorded = true;
+      recording = false;
+      println("ending recording");
+     if ( recorded){
+      if ( rec_player != null ){
+        rec_player.unpatch( out );
+        rec_player.close();
+    }
+    rec_player = new FilePlayer( recorder.save() );
+    rec_box = new Box(1500, 50, time_rec, 50, boxFileName);
+    boxes.add(rec_box);
+    time_rec = 0;
+    boxCnt++;
+    boxFileName = "recording" + boxCnt + ".wav";
+    recorder = minim.createRecorder(in, boxFileName);
+
+  }
+    } else 
+    {
+      recording = true;
+      println("beggining recording");
+      recorder.beginRecord();
+    }
+  //}
+}
+
+//CLEAR BEAT
+void clear_beat() {
+  for (int i = 0; i < 16; i++) {
+    for (int j = 0; j < 13; j++) {
+      if ( rows[j][i] ) { 
+      rows[j][i] = false;
+    }
+    }
+  }
+}
+
+//CONTROL EVENT?? IDK
+void controlEvent(ControlEvent theEvent) {
+  if (theEvent.isAssignableFrom(Textfield.class)) {
+    println("controlEvent: accessing a string from controller '"
+      +theEvent.getName()+"': "
+      +theEvent.getStringValue()
+      );
+  }
+  int rowrow = int(theEvent.getName());
+  for (int i = 0; i < 16; i++) {
+    for (int j = 0; j < 13; j++) {
+      if (rowrow == j){
+        truevals[i] = rows[j][i];
+      }
+    }
+  }
+  for (int i = 0; i < int(theEvent.getStringValue()); i++) {
+    for (int j = 0; j < 16; j++) {
+      memory[int(theEvent.getName())-1][j + (pagenumber*16)] = truevals[j];
+    }
+    pagenumber++;
+    max_page++;
+  }
+  for (int i = 0; i < int(theEvent.getStringValue()); i++) {
+    pagenumber--;
+  }
+}
+
+//SAVEMAKING
+
+void save_making() {
+  for (int i = 0; i < 16; i++) {
+    for (int j = 0; j < 13; j++) {
+      if ( rows[j][i] ) { 
+      memory[j][i +(pagenumber * 16)] = true; 
+      rows[j][i] = false;
+    } else {
+      memory[j][i +(pagenumber * 16)] = false;
+    }
+    }
+
+  }
+  pagenumber++;
+  max_page++;
+}
+
+//RIGHT
+void right() {
+  clear_beat();
+  for (int i = 0; i < 16; i++) {
+    for (int j = 0; j < 13; j++) {
+      if ( memory[j][i +((pagenumber+1) * 16)]) { 
+      rows[j][i] = true;
+    }
+    }
+  }
+  pagenumber++;
+}
+
+//LEFT
+void left() {
+  clear_beat();
+  for (int i = 0; i < 16; i++) {
+    for (int j = 0; j < 13; j++) {
+      if ( memory[j][i +((pagenumber-1) * 16)]) { 
+      rows[j][i] = true;
+    }
+    }
+   
+  }
+  pagenumber--;
+}
+
+//FIND BOX PRESSED
+void findRecBoxPressed(float x, float y){
+  for (Box b: boxes){
+     if (b.wasPressed(x, y)){
+       b.pressed = true;
+       draggingbox = true;
+     }
+  }
+
+}
+
+//NEW LAYER -- BOXHOLDERS
+void createNewLayer(boolean column){
+  println("COLUMN: ", column);
+  println("columns before: ", column_counter);
+  println("rows before: ", row_counter);
+  boxholder_ix = orginx;
+  boxholder_iy = orginy;
+  //if we are creating a column, make as many rows as we have and add to column counter
+  if (column){
+    boxholder_ix = orginx + column_counter * 400;
+    for (int i = 0; i < row_counter; i++){
+      layers.boxholders.add(new BoxHolder(boxholder_ix, boxholder_iy, 400, 70, 20));
+      boxholder_iy += 100;
+    }
+    column_counter++;
+  }else{
+    //vise versa for row
+    boxholder_iy = orginy + row_counter * 100;
+    for (int i = 0; i < column_counter; i++){
+      layers.boxholders.add(new BoxHolder(boxholder_ix, boxholder_iy, 400, 70, 20));
+      boxholder_ix += 400;
+    }
+    row_counter++;
+  }
+  //println(layers.boxholders.size());
+  println("columns after: ", column_counter);
+  println("rows after: ", row_counter);
+  println();
+  
