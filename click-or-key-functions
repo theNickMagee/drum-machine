@@ -1,0 +1,109 @@
+void copyfromlast() {
+}
+
+int loopState= 0;
+//KEYRELEASED
+void keyReleased(){
+
+
+
+  if (key == 'b'){
+    println("b");
+    rec_player.patch( out );
+    rec_player.play();
+  }
+  if (key == 'r'){
+    replay();  
+  }
+   if (key == 'd'){
+    layers.run();
+  }
+  if (key == 'p'){
+    layers.reset();
+  }
+}
+
+//MOUSE PRESSED
+void mousePressed(){
+  for (int i = 0; i < buttons.size(); ++i)
+  {
+    buttons.get(i).mousePressed();
+  }
+  if ((mouseX > button_amp_x)  &&(mouseX < button_amp_x + button_amp_w) && (mouseY>button_amp_y) && (mouseY <button_amp_y+button_amp_h)) {
+    println("The mouse is pressed and over the button");
+    fill(255, 0, 0);
+    rect(button_amp_x, button_amp_y, button_amp_w, button_amp_h);
+    if (paused) {
+      paused = false;
+      sample1.loop();
+    } else {
+      paused = true;
+    }
+  }
+  if ((mouseX > rewindx)  &&(mouseX < rewindx + rewindr) && (mouseY>rewindy) && (mouseY <rewindy+rewindr)) {
+    sample1.rewind();
+    println("rewind");
+  }
+ 
+  if ((mouseX > savex)  &&(mouseX < savex + savew) && (mouseY>savey) && (mouseY <savey+saveh)) {
+    save_making();
+  }
+  if ((mouseX > leftx)  &&(mouseX < leftx + leftw) && (mouseY>lefty) && (mouseY <lefty+lefth)) {
+    left();
+  }
+  if ((mouseX > rightx)  &&(mouseX < rightx + rightw) && (mouseY>righty) && (mouseY <righty+righth)) {
+    right();
+  }
+  if ((mouseX > replayx)  &&(mouseX < replayx + replayw) && (mouseY>replayy) && (mouseY <replayy+replayh)) {
+    replay();
+  }
+  //if ((mouseX > savelatex)  &&(mouseX < savelatex + savelatew) && (mouseY>savelatey) && (mouseY <savelatey+savelateh)) {
+  //  savelate();
+  //}
+  
+  //BOX DRAGGING AND PLACING MECHANISM
+  if (draggingbox){
+    for (Box b: boxes){
+     if (b.pressed == true){
+       layers.placeinboxholder(b, mouseX, mouseY);
+       b.bePlaced(mouseX, mouseY);
+       
+     }
+  }
+    draggingbox = false;
+  }else{
+    findRecBoxPressed(mouseX, mouseY);
+  }
+  
+   if ((mouseX > new_bhb_x)  &&(mouseX < new_bhb_x + new_bhb_w) && (mouseY>new_bhb_y) && (mouseY <new_bhb_y+new_bhb_h)) {
+     noStroke();
+     createNewLayer(false);
+  }
+  if ((mouseX > new_bhbc_x)  &&(mouseX < new_bhbc_x + new_bhbc_w) && (mouseY>new_bhbc_y) && (mouseY <new_bhbc_y+new_bhbc_h)) {
+     noStroke();
+     createNewLayer(true);
+  }
+  if ((mouseX > loopbuttonX - (loopButtonRadius/2))  &&(mouseX < loopbuttonX + (loopButtonRadius/2)) && (mouseY>loopbuttonY - (loopButtonRadius/2)) && (mouseY <loopbuttonY + (loopButtonRadius/2))) {
+    layers.loop(loopState % 3);
+    println("ls3: ", loopState % 3);
+    loopState ++;
+  }
+  if ((mouseX > layers.loopStartx - 10)  &&(mouseX < layers.loopStartx + 10) && (mouseY>layers.y) && (mouseY <layers.y+layers.lineh)) {
+    if (layers.startXTouched == true){
+       layers.startXTouched = false;
+    }else{
+      layers.startXTouched = true;
+    }
+  }
+  if ((mouseX > layers.loopEndx - 10)  &&(mouseX < layers.loopEndx + 10) && (mouseY>layers.y) && (mouseY <layers.y+layers.lineh)) {
+    if (layers.endXTouched == true){
+       layers.endXTouched = false;
+    }else{
+      layers.endXTouched = true;
+    }
+  }
+}
+
+void mouseDragged(){
+
+}
